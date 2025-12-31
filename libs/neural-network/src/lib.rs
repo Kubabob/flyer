@@ -1,3 +1,4 @@
+use rand::Rng;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -73,9 +74,12 @@ struct Neuron {
 
 impl Neuron {
     pub fn random(input_size: usize) -> Self {
-        let bias = todo!();
+        let mut rng = rand::rng();
+        let bias = rng.random_range(-1.0..=1.0);
 
-        let weights = (0..input_size).map(|_| todo!()).collect();
+        let weights = (0..input_size)
+            .map(|_| rng.random_range(-1.0..=1.0))
+            .collect();
 
         Self { bias, weights }
     }
