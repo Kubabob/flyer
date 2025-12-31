@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{Rng, RngCore};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -24,10 +24,10 @@ impl Network {
     //     Self { layers }
     // }
 
-    pub fn random(layers: &[LayerTopology]) -> Self {
+    pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
         let layers = layers
             .windows(2)
-            .map(|layers| Layer::random(layers[0].neurons, layers[1].neurons))
+            .map(|layers| Layer::random(rng, layers[0].neurons, layers[1].neurons))
             .collect();
 
         Self { layers }
@@ -46,6 +46,14 @@ struct Layer {
 }
 
 impl Layer {
+    pub fn random(rng: &mut dyn RngCore, input_size: usize, output_size: usize) -> Self {
+        let neurons = (0..output_size)
+            .map(|_| Neuron::random(rng, input_size))
+            .collect();
+
+        Self { neurons }
+    }
+
     pub fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
         self.neurons
             .iter()
@@ -56,14 +64,6 @@ impl Layer {
             })
             .collect()
     }
-
-    pub fn random(input_size: usize, output_size: usize) -> Self {
-        let neurons = (0..output_size)
-            .map(|_| Neuron::random(input_size))
-            .collect();
-
-        Self { neurons }
-    }
 }
 
 #[derive(Debug)]
@@ -73,8 +73,7 @@ struct Neuron {
 }
 
 impl Neuron {
-    pub fn random(input_size: usize) -> Self {
-        let mut rng = rand::rng();
+    pub fn random(rng: &mut dyn RngCore, input_size: usize) -> Self {
         let bias = rng.random_range(-1.0..=1.0);
 
         let weights = (0..input_size)
@@ -103,4 +102,23 @@ impl Neuron {
 
 pub fn relu(value: f32) -> f32 {
     value.max(0.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
+
+    #[test]
+    fn random_neuron() {
+        let mut rng = ChaCha8Rng::from_seed(Default::default());
+        let neuron = Neuron::random(&mut rng, 4);
+
+        assert_eq!(neuron.bias, -0.6255188);
+        assert_eq!(
+            neuron.weights,
+            &[0.67383933, 0.81812596, 0.26284885, 0.5238805]
+        );
+    }
 }
