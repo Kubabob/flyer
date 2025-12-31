@@ -9,11 +9,29 @@ pub enum Error {
 }
 
 #[derive(Debug)]
+pub struct LayerTopology {
+    pub neurons: usize,
+}
+
+#[derive(Debug)]
 pub struct Network {
     layers: Vec<Layer>,
 }
 
 impl Network {
+    // pub fn new(layers: Vec<Layer>) -> Self {
+    //     Self { layers }
+    // }
+
+    pub fn random(layers: &[LayerTopology]) -> Self {
+        let layers = layers
+            .windows(2)
+            .map(|layers| Layer::random(layers[0].neurons, layers[1].neurons))
+            .collect();
+
+        Self { layers }
+    }
+
     pub fn propagate(&self, mut inputs: Vec<f32>) -> Vec<f32> {
         self.layers
             .iter()
@@ -37,6 +55,14 @@ impl Layer {
             })
             .collect()
     }
+
+    pub fn random(input_size: usize, output_size: usize) -> Self {
+        let neurons = (0..output_size)
+            .map(|_| Neuron::random(input_size))
+            .collect();
+
+        Self { neurons }
+    }
 }
 
 #[derive(Debug)]
@@ -46,6 +72,13 @@ struct Neuron {
 }
 
 impl Neuron {
+    pub fn random(input_size: usize) -> Self {
+        let bias = todo!();
+
+        let weights = (0..input_size).map(|_| todo!()).collect();
+
+        Self { bias, weights }
+    }
     pub fn propagate(&self, inputs: &[f32]) -> Result<f32> {
         if inputs.len() != self.weights.len() {
             return Err(Error::MismatchedInputSize {
