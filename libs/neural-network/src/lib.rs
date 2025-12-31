@@ -54,15 +54,13 @@ impl Neuron {
             });
         }
 
-        let mut output = 0.0;
+        let output = inputs
+            .iter()
+            .zip(&self.weights)
+            .map(|(input, weight)| input * weight)
+            .sum::<f32>();
 
-        for (&input, &weight) in inputs.iter().zip(&self.weights) {
-            output += input * weight;
-        }
-
-        output += self.bias;
-
-        Ok(relu(output))
+        Ok(relu(self.bias + output))
     }
 }
 
