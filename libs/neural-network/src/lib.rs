@@ -20,10 +20,6 @@ pub struct Network {
 }
 
 impl Network {
-    // pub fn new(layers: Vec<Layer>) -> Self {
-    //     Self { layers }
-    // }
-
     pub fn random(rng: &mut dyn RngCore, layers: &[LayerTopology]) -> Self {
         let layers = layers
             .windows(2)
@@ -33,7 +29,7 @@ impl Network {
         Self { layers }
     }
 
-    pub fn propagate(&self, mut inputs: Vec<f32>) -> Vec<f32> {
+    pub fn propagate(&self, inputs: Vec<f32>) -> Vec<f32> {
         self.layers
             .iter()
             .fold(inputs, |inputs, layer| layer.propagate(inputs))
@@ -111,30 +107,58 @@ mod tests {
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
-    #[test]
-    fn random_neuron() {
-        let mut rng = ChaCha8Rng::from_seed(Default::default());
-        let neuron = Neuron::random(&mut rng, 4);
+    mod neuron {
+        use super::*;
 
-        assert_relative_eq!(neuron.bias, -0.6255188);
-        assert_relative_eq!(
-            neuron.weights.as_slice(),
-            [0.67383933, 0.81812596, 0.26284885, 0.5238805].as_ref()
-        );
+        #[test]
+        fn random_generation() {
+            let mut rng = ChaCha8Rng::from_seed(Default::default());
+            let neuron = Neuron::random(&mut rng, 4);
+
+            assert_relative_eq!(neuron.bias, -0.6255188);
+            assert_relative_eq!(
+                neuron.weights.as_slice(),
+                [0.67383933, 0.81812596, 0.26284885, 0.5238805].as_ref()
+            );
+        }
+
+        #[test]
+        fn propagate() {
+            let neuron = Neuron {
+                bias: 0.5,
+                weights: vec![-0.3, 0.8],
+            };
+
+            assert_relative_eq!(neuron.propagate(&[-10.0, -10.0]).unwrap(), 0.0,);
+
+            assert_relative_eq!(
+                neuron.propagate(&[0.5, 1.0]).unwrap(),
+                (-0.3 * 0.5) + (0.8 * 1.0) + 0.5
+            )
+        }
     }
 
-    #[test]
-    fn propagate_neuron() {
-        let neuron = Neuron {
-            bias: 0.5,
-            weights: vec![-0.3, 0.8],
-        };
+    mod layer {
+        #[test]
+        fn random() {
+            todo!()
+        }
 
-        assert_relative_eq!(neuron.propagate(&[-10.0, -10.0]).unwrap(), 0.0,);
+        #[test]
+        fn propagate() {
+            todo!()
+        }
+    }
 
-        assert_relative_eq!(
-            neuron.propagate(&[0.5, 1.0]).unwrap(),
-            (-0.3 * 0.5) + (0.8 * 1.0) + 0.5
-        )
+    mod network {
+        #[test]
+        fn random() {
+            todo!()
+        }
+
+        #[test]
+        fn propagate() {
+            todo!()
+        }
     }
 }
