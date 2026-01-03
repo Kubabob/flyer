@@ -5,16 +5,22 @@ use std::ops::Index;
 pub struct GeneticAlgorithm<S> {
     selection_method: S,
     crossover_method: Box<dyn CrossoverMethod>,
+    mutation_method: Box<dyn MutationMethod>,
 }
 
 impl<S> GeneticAlgorithm<S>
 where
     S: SelectionMethod,
 {
-    pub fn new(selection_method: S, crossover_method: impl CrossoverMethod + 'static) -> Self {
+    pub fn new(
+        selection_method: S,
+        crossover_method: impl CrossoverMethod + 'static,
+        mutation_method: impl MutationMethod + 'static,
+    ) -> Self {
         Self {
             selection_method,
             crossover_method: Box::new(crossover_method),
+            mutation_method: Box::new(mutation_method),
         }
     }
 
@@ -26,15 +32,14 @@ where
 
         (0..population.len())
             .map(|_| {
-                // TODO selection
                 let parent_a = self.selection_method.select(rng, population).chromosome();
                 let parent_b = self.selection_method.select(rng, population).chromosome();
 
                 let mut child = self.crossover_method.crossover(rng, parent_a, parent_b);
 
-                // TODO crossover
-                // TODO mutation
-                todo!();
+                self.mutation_method.mutate(rng, &mut child);
+
+                I::create(child)
             })
             .collect()
     }
@@ -87,6 +92,7 @@ impl IntoIterator for Chromosome {
 pub trait Individual {
     fn fitness(&self) -> f32;
     fn chromosome(&self) -> &Chromosome;
+    fn create(chromosome: Chromosome) -> Self;
 }
 
 pub trait SelectionMethod {
@@ -175,28 +181,53 @@ impl MutationMethod for GaussianMutation {
 
 #[cfg(test)]
 mod tests {
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha8Rng;
+
     use super::*;
     use std::collections::BTreeMap;
     use std::iter::FromIterator;
 
-    #[derive(Debug, Clone)]
-    struct TestIndividual {
-        fitness: f32,
+    #[derive(Clone, Debug, PartialEq)]
+    enum TestIndividual {
+        WithChromosome { chromosome: Chromosome },
+
+        WithFitness { fitness: f32 },
     }
 
     impl TestIndividual {
         fn new(fitness: f32) -> Self {
-            Self { fitness }
+            Self::WithFitness { fitness }
         }
     }
 
     impl Individual for TestIndividual {
-        fn fitness(&self) -> f32 {
-            self.fitness
+        fn create(chromosome: Chromosome) -> Self {
+            Self::WithChromosome { chromosome }
         }
 
         fn chromosome(&self) -> &Chromosome {
-            panic!("Not supported for TestIndividual")
+            match self {
+                Self::WithChromosome { chromosome } => chromosome,
+
+                Self::WithFitness { .. } => {
+                    panic!("Not supported for TestIndividual::WithFitness")
+                }
+            }
+        }
+
+        fn fitness(&self) -> f32 {
+            match self {
+                Self::WithChromosome { chromosome } => chromosome.iter().sum(),
+
+                Self::WithFitness { fitness } => *fitness,
+            }
+        }
+    }
+
+    impl PartialEq for Chromosome {
+        fn eq(&self, other: &Self) -> bool {
+            approx::relative_eq!(self.genes.as_slice(), other.genes.as_slice())
         }
     }
 
@@ -363,5 +394,40 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn genetic_algorithm() {
+        fn individual(genes: &[f32]) -> TestIndividual {
+            TestIndividual::create(genes.iter().cloned().collect())
+        }
+
+        let mut rng = ChaCha8Rng::from_seed(Default::default());
+
+        let ga = GeneticAlgorithm::new(
+            RouletteWheelSelection,
+            UniformCrossover,
+            GaussianMutation::new(0.5, 0.5),
+        );
+
+        let mut population = vec![
+            individual(&[0.0, 0.0, 0.0]),
+            individual(&[1.0, 1.0, 1.0]),
+            individual(&[1.0, 2.0, 1.0]),
+            individual(&[1.0, 2.0, 4.0]),
+        ];
+
+        for _ in 0..10 {
+            population = ga.evolve(&mut rng, &population);
+        }
+
+        let expected_population = vec![
+            individual(&[0.44769490, 2.0648358, 4.3058133]),
+            individual(&[1.21268670, 1.5538777, 2.8869110]),
+            individual(&[1.06176780, 2.2657390, 4.4287640]),
+            individual(&[0.95909685, 2.4618788, 4.0247330]),
+        ];
+
+        assert_eq!(population, expected_population);
     }
 }
