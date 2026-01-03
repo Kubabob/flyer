@@ -14,6 +14,12 @@ pub struct LayerTopology {
     pub neurons: usize,
 }
 
+impl LayerTopology {
+    pub fn new(neurons: usize) -> Self {
+        Self { neurons }
+    }
+}
+
 #[derive(Debug)]
 pub struct Network {
     layers: Vec<Layer>,
@@ -36,7 +42,7 @@ impl Network {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct Layer {
     neurons: Vec<Neuron>,
 }
@@ -62,7 +68,7 @@ impl Layer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 struct Neuron {
     bias: f32,
     weights: Vec<f32>,
@@ -139,26 +145,149 @@ mod tests {
     }
 
     mod layer {
+        use approx::assert_relative_eq;
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+
+        use crate::{Layer, Neuron};
+
+        impl approx::AbsDiffEq for Neuron {
+            type Epsilon = f32;
+
+            fn default_epsilon() -> f32 {
+                f32::EPSILON
+            }
+
+            fn abs_diff_eq(&self, other: &Self, epsilon: f32) -> bool {
+                self.bias.abs_diff_eq(&other.bias, epsilon)
+                    && self.weights.len() == other.weights.len()
+                    && self
+                        .weights
+                        .iter()
+                        .zip(other.weights.iter())
+                        .all(|(a, b)| a.abs_diff_eq(b, epsilon))
+            }
+        }
+
+        impl approx::RelativeEq for Neuron {
+            fn default_max_relative() -> f32 {
+                f32::default_max_relative()
+            }
+
+            fn relative_eq(&self, other: &Self, epsilon: f32, max_relative: f32) -> bool {
+                self.bias.relative_eq(&other.bias, epsilon, max_relative)
+                    && self.weights.len() == other.weights.len()
+                    && self
+                        .weights
+                        .iter()
+                        .zip(other.weights.iter())
+                        .all(|(a, b)| a.relative_eq(b, epsilon, max_relative))
+            }
+        }
+
         #[test]
         fn random() {
-            todo!()
+            let mut rng = ChaCha8Rng::from_seed(Default::default());
+            let layer = Layer::random(&mut rng, 3, 2);
+
+            let mut rng2 = ChaCha8Rng::from_seed(Default::default());
+            let expected_neurons = vec![Neuron::random(&mut rng2, 3), Neuron::random(&mut rng2, 3)];
+
+            assert_eq!(layer.neurons.len(), 2);
+            assert_relative_eq!(layer.neurons.as_slice(), expected_neurons.as_slice());
         }
 
         #[test]
         fn propagate() {
-            todo!()
+            let mut rng = ChaCha8Rng::from_seed(Default::default());
+            let layer = Layer::random(&mut rng, 3, 2);
+
+            assert_relative_eq!(
+                layer.propagate(vec![-10.0, -10.0, 5.0]).as_slice(),
+                vec![0.0, 1.3577781].as_slice()
+            );
         }
     }
 
     mod network {
+        use approx::assert_relative_eq;
+        use rand::SeedableRng;
+        use rand_chacha::ChaCha8Rng;
+
+        use crate::{Layer, LayerTopology, Network};
+
+        impl approx::AbsDiffEq for Layer {
+            type Epsilon = f32;
+
+            fn default_epsilon() -> f32 {
+                f32::EPSILON
+            }
+
+            fn abs_diff_eq(&self, other: &Self, epsilon: f32) -> bool {
+                self.neurons.len() == other.neurons.len()
+                    && self
+                        .neurons
+                        .iter()
+                        .zip(other.neurons.iter())
+                        .all(|(a, b)| a.abs_diff_eq(b, epsilon))
+            }
+        }
+
+        impl approx::RelativeEq for Layer {
+            fn default_max_relative() -> f32 {
+                f32::default_max_relative()
+            }
+
+            fn relative_eq(&self, other: &Self, epsilon: f32, max_relative: f32) -> bool {
+                self.neurons.len() == other.neurons.len()
+                    && self
+                        .neurons
+                        .iter()
+                        .zip(other.neurons.iter())
+                        .all(|(a, b)| a.relative_eq(b, epsilon, max_relative))
+            }
+        }
+
         #[test]
         fn random() {
-            todo!()
+            let mut rng = ChaCha8Rng::from_seed(Default::default());
+            let network = Network::random(
+                &mut rng,
+                &[
+                    LayerTopology { neurons: 3 },
+                    LayerTopology { neurons: 4 },
+                    LayerTopology { neurons: 5 },
+                ],
+            );
+
+            let mut rng2 = ChaCha8Rng::from_seed(Default::default());
+
+            assert_relative_eq!(
+                network.layers.as_slice(),
+                [
+                    Layer::random(&mut rng2, 3, 4),
+                    Layer::random(&mut rng2, 4, 5)
+                ]
+                .as_ref()
+            );
         }
 
         #[test]
         fn propagate() {
-            todo!()
+            let mut rng = ChaCha8Rng::from_seed(Default::default());
+            let network = Network::random(
+                &mut rng,
+                &[
+                    LayerTopology { neurons: 3 },
+                    LayerTopology { neurons: 4 },
+                    LayerTopology { neurons: 5 },
+                ],
+            );
+
+            assert_relative_eq!(
+                network.propagate(vec![-10.0, -10.0, 5.0]).as_slice(),
+                vec![0.0, 0.0, 2.2639842, 1.7549752, 2.1092079].as_slice()
+            );
         }
     }
 }
