@@ -1,18 +1,22 @@
 mod utils;
 
+use lib_simulation as sim;
+use rand::{prelude::*, rng};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
+pub struct Simulation {
+    rng: ThreadRng,
+    sim: sim::Simulation,
 }
 
 #[wasm_bindgen]
-pub fn greet() {
-    alert("Hello, simulation-wasm!");
-}
+impl Simulation {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        let mut rng = rng();
+        let sim = sim::Simulation::random(&mut rng);
 
-#[wasm_bindgen]
-pub fn whos_that_dog() -> String {
-    "Mister Peanutbutter".into()
+        Self { rng, sim }
+    }
 }
