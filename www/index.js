@@ -19,15 +19,33 @@ ctxt.scale(viewportScale, viewportScale);
 
 ctxt.fillStyle = "rgb(0,0,0)";
 
-CanvasRenderingContext2D.prototype.drawTriangle = function (x, y, size) {
+CanvasRenderingContext2D.prototype.drawTriangle = function (
+    x,
+    y,
+    size,
+    rotation,
+) {
     this.beginPath();
-    this.moveTo(x, y);
-    this.lineTo(x + size, y + size);
-    this.lineTo(x - size, y + size);
-    this.lineTo(x, y);
+    this.moveTo(
+        x - Math.sin(rotation) * size * 1.5,
+        y + Math.cos(rotation) * size * 1.5,
+    );
+    this.lineTo(
+        x - Math.sin(rotation + (2.0 / 3.0) * Math.PI) * size,
+        y + Math.cos(rotation + (2.0 / 3.0) * Math.PI) * size,
+    );
+    this.lineTo(
+        x - Math.sin(rotation + (4.0 / 3.0) * Math.PI) * size,
+        y + Math.cos(rotation + (4.0 / 3.0) * Math.PI) * size,
+    );
+    this.lineTo(
+        x - Math.sin(rotation) * size * 1.5,
+        y + Math.cos(rotation) * size * 1.5,
+    );
 
-    this.fillStyle = "rgb(0,0,0)";
-    this.fill();
+    // this.fillStyle = "rgb(0,0,0)";
+    // this.fill();
+    this.stroke();
 };
 
 for (const animal of simulation.world().animals) {
@@ -36,5 +54,6 @@ for (const animal of simulation.world().animals) {
         animal.x * viewportWidth,
         animal.y * viewportHeight,
         0.01 * viewportWidth,
+        animal.rotation,
     );
 }
