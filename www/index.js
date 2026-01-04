@@ -48,12 +48,22 @@ CanvasRenderingContext2D.prototype.drawTriangle = function (
     this.stroke();
 };
 
-for (const animal of simulation.world().animals) {
-    // ctxt.fillRect(animal.x * viewportWidth, animal.y * viewportHeight, 15, 15);
-    ctxt.drawTriangle(
-        animal.x * viewportWidth,
-        animal.y * viewportHeight,
-        0.01 * viewportWidth,
-        animal.rotation,
-    );
+function redraw() {
+    ctxt.clearRect(0, 0, viewportWidth, viewportHeight);
+
+    simulation.step();
+
+    for (const animal of simulation.world().animals) {
+        // ctxt.fillRect(animal.x * viewportWidth, animal.y * viewportHeight, 15, 15);
+        ctxt.drawTriangle(
+            animal.x * viewportWidth,
+            animal.y * viewportHeight,
+            0.01 * viewportWidth,
+            animal.rotation,
+        );
+    }
+
+    requestAnimationFrame(redraw);
 }
+
+redraw();
