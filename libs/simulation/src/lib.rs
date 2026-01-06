@@ -1,10 +1,11 @@
 mod animal;
 mod animal_individual;
+mod brain;
 mod eye;
 mod food;
 mod world;
 
-pub use self::{animal::*, animal_individual::*, eye::*, food::*, world::*};
+pub use self::{animal::*, animal_individual::*, brain::*, eye::*, food::*, world::*};
 use lib_genetic_algorithm as ga;
 use lib_neural_network as nn;
 use nalgebra as na;
@@ -77,7 +78,7 @@ impl Simulation {
                     .eye
                     .process_vision(animal.position, animal.rotation, &self.world.foods);
 
-            let response = animal.brain.propagate(vision);
+            let response = animal.brain.nn.propagate(vision);
 
             let speed = response[0].clamp(-SPEED_ACCEL, SPEED_ACCEL);
             let rotation = response[1].clamp(-ROTATION_ACCEL, ROTATION_ACCEL);
